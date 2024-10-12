@@ -19,6 +19,8 @@ app.post("/api/analyze", async (req, res) => {
 
     try {
         const response = await axios.post(
+            // "https://api-inference.huggingface.co/models/gpt2",
+            // "https://api-inference.huggingface.co/models/dbmdz/bert-large-cased-finetuned-conll03-english",
             "https://api-inference.huggingface.co/models/nlptown/bert-base-multilingual-uncased-sentiment",
             { inputs: resumeText },
             {
