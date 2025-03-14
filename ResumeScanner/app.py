@@ -7,12 +7,12 @@ import re
 import nltk
 from nltk.corpus import stopwords
 nltk.download('stopwords', download_dir='/usr/local/share/nltk_data')
+from sklearn.feature_extraction.text import TfidfVectorizer
+
 
 # Initialize Flask app
 app = Flask(__name__)
 
-# Load the pre-trained model for text similarity
-model = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
 
 # Function to extract text from a PDF resume
 def extract_text_from_pdf(pdf_path):
@@ -33,23 +33,26 @@ model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2", device="cp
 nltk.download('stopwords')
 STOP_WORDS = set(stopwords.words('english'))
 
-def extract_keywords(text, top_n=10):
-    """Extracts meaningful keywords by removing stopwords and counting frequency."""
-    words = re.findall(r'\b\w+\b', text.lower())  # Tokenize words
-    words = [w for w in words if w not in STOP_WORDS and len(w) > 2]  # Remove stopwords and very short words
-    word_freq = {word: words.count(word) for word in set(words)}
-    sorted_keywords = sorted(word_freq, key=word_freq.get, reverse=True)[:top_n]
-    return set(sorted_keywords)
+# def extract_keywords(text, top_n=10):
+#     """Extracts meaningful keywords by removing stopwords and counting frequency."""
+#     words = re.findall(r'\b\w+\b', text.lower())  # Tokenize words
+#     words = [w for w in words if w not in STOP_WORDS and len(w) > 2]  # Remove stopwords and very short words
+#     word_freq = {word: words.count(word) for word in set(words)}
+#     sorted_keywords = sorted(word_freq, key=word_freq.get, reverse=True)[:top_n]
+#     return set(sorted_keywords)
 
-# def analyze_resume(resume_text, job_description):
-#     # Ensure tensors are processed on CPU
-#     resume_embedding = model.encode(resume_text, convert_to_tensor=True).to("cpu")
-#     job_embedding = model.encode(job_description, convert_to_tensor=True).to("cpu")
-
-#     # Calculate cosine similarity (ranges from 0 to 1)
-#     similarity_score = util.pytorch_cos_sim(resume_embedding, job_embedding).item()
+def extract_keywords(text, num_keywords=10):
+    vectorizer = TfidfVectorizer(stop_words='english')
+    tfidf_matrix = vectorizer.fit_transform([text])
+    feature_names = vectorizer.get_feature_names_out()
+    scores = tfidf_matrix.toarray().flatten()
     
-#     return {"score": similarity_score}
+    keyword_scores = sorted(zip(feature_names, scores), key=lambda x: x[1], reverse=True)
+    return [word for word, score in keyword_scores[:num_keywords]]
+
+def compute_similarity(text1, text2):
+    embeddings = model.encode([text1, text2], convert_to_tensor=True)
+    return util.pytorch_cos_sim(embeddings[0], embeddings[1]).item()
 
 
 def analyze_resume(resume_text, job_description):
