@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Resume Screener</title>
+</head>
+<body>
+    <h1>AI-Powered Resume Screener</h1>
+    <form action="/submit" method="POST" enctype="multipart/form-data">
+        <label for="resume">Upload Resume (PDF only):</label>
+        <input type="file" name="resume" required><br><br>
+
+        <label for="job_desc">Job Description:</label><br>
+        <textarea name="job_desc" rows="10" cols="50" required></textarea><br><br>
+
+        <button type="submit">Submit</button>
+    </form>
+</body>
+</html>
