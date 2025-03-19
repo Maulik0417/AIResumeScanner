@@ -2,25 +2,29 @@ from flask import Flask, request, jsonify, render_template
 from transformers import pipeline
 import pdfplumber
 import nltk
+from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from nltk.util import ngrams
-from sentence_transformers import SentenceTransformer, util
-import re
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+from itertools import chain
 import string
 import numpy as np
+
+nltk.download('stopwords')
+nltk.download('punkt')
+nltk.download('wordnet')
+from nltk.corpus import wordnet
 
 # Initialize Flask app
 app = Flask(__name__)
 
-# Load models
-zero_shot_model = pipeline("zero-shot-classification", model="facebook/bart-large-mnli", device="cpu")
-embedding_model = SentenceTransformer("all-MiniLM-L6-v2", device="cpu")
+# Load the pre-trained model for text similarity
+model = pipeline("zero-shot-classification", model="facebook/bart-large-mnli",device="cpu")
 
-# Load stopwords
-nltk.download('stopwords')
 STOP_WORDS = set(stopwords.words('english'))
 
-# Function to extract text from PDF
+# Function to extract text from a PDF resume
 def extract_text_from_pdf(pdf_path):
     with pdfplumber.open(pdf_path) as pdf:
         text = ''
@@ -28,49 +32,56 @@ def extract_text_from_pdf(pdf_path):
             text += page.extract_text() + " "
     return text.strip()
 
-# Preprocess text
-def preprocess_text(text):
-    text = text.lower()
-    text = re.sub(f"[{string.punctuation}]", "", text)
-    words = text.split()
-    words = [word for word in words if word not in STOP_WORDS]
-    return " ".join(words)
+# Function to get synonyms
+def get_synonyms(word):
+    synonyms = set()
+    for syn in wordnet.synsets(word):
+        for lemma in syn.lemmas():
+            synonyms.add(lemma.name().replace("_", " "))
+    return synonyms
 
-# Extract n-grams
-def get_ngrams(text, n=2):
-    words = text.split()
-    return set([" ".join(gram) for gram in ngrams(words, n)])
+# Function to extract keywords using TF-IDF
+def extract_keywords(text, top_n=10):
+    vectorizer = TfidfVectorizer(stop_words='english', ngram_range=(1, 2))
+    tfidf_matrix = vectorizer.fit_transform([text])
+    feature_array = np.array(vectorizer.get_feature_names_out())
+    tfidf_sorting = np.argsort(tfidf_matrix.toarray()).flatten()[::-1]
+    return feature_array[tfidf_sorting][:top_n]
 
-# Analyze resume similarity
+# Function to match resume against job description
 def analyze_resume(resume_text, job_description):
-    resume_text = preprocess_text(resume_text)
-    job_description = preprocess_text(job_description)
+    resume_tokens = word_tokenize(resume_text.lower())
+    job_tokens = word_tokenize(job_description.lower())
     
-    # Cosine similarity
-    resume_embedding = embedding_model.encode(resume_text, convert_to_tensor=True)
-    job_embedding = embedding_model.encode(job_description, convert_to_tensor=True)
-    cosine_similarity = util.pytorch_cos_sim(resume_embedding, job_embedding).item()
+    resume_tokens = [word for word in resume_tokens if word not in STOP_WORDS and word not in string.punctuation]
+    job_tokens = [word for word in job_tokens if word not in STOP_WORDS and word not in string.punctuation]
     
-    # Keyword match
-    resume_words = set(resume_text.split())
-    job_words = set(job_description.split())
-    matched_keywords = list(resume_words & job_words)
-    keyword_match_score = len(matched_keywords) / max(len(job_words), 1)
+    matched_keywords = list(set(resume_tokens) & set(job_tokens))
     
-    # N-gram match
-    resume_ngrams = get_ngrams(resume_text, n=2) | get_ngrams(resume_text, n=3)
-    job_ngrams = get_ngrams(job_description, n=2) | get_ngrams(job_description, n=3)
-    matched_ngrams = list(resume_ngrams & job_ngrams)
-    ngram_match_score = len(matched_ngrams) / max(len(job_ngrams), 1)
+    # Synonym Matching
+    expanded_job_keywords = set(chain(*[get_synonyms(word) for word in job_tokens]))
+    matched_keywords += [word for word in resume_tokens if word in expanded_job_keywords]
     
-    # Final Score Calculation
-    final_score = (0.75 * cosine_similarity) + (0.15 * keyword_match_score) + (0.10 * ngram_match_score)
+    # N-gram Matching
+    resume_bigrams = list(ngrams(resume_tokens, 2))
+    job_bigrams = list(ngrams(job_tokens, 2))
+    matched_ngrams = [" ".join(pair) for pair in set(resume_bigrams) & set(job_bigrams)]
+    
+    # TF-IDF Similarity
+    vectorizer = TfidfVectorizer(stop_words='english')
+    tfidf_matrix = vectorizer.fit_transform([resume_text, job_description])
+    cosine_sim = cosine_similarity(tfidf_matrix[0], tfidf_matrix[1])[0][0]
+    
+    # Scoring
+    keyword_match_score = len(matched_keywords) / len(set(job_tokens)) if job_tokens else 0
+    ngram_match_score = len(matched_ngrams) / len(set(job_bigrams)) if job_bigrams else 0
+    final_score = (cosine_sim + keyword_match_score + ngram_match_score) / 3
     
     return {
-        "cosine_similarity": round(cosine_similarity, 3),
-        "keyword_match_score": round(keyword_match_score, 3),
-        "ngram_match_score": round(ngram_match_score, 3),
-        "final_score": round(final_score, 3),
+        "cosine_similarity": cosine_sim,
+        "keyword_match_score": keyword_match_score,
+        "ngram_match_score": ngram_match_score,
+        "final_score": final_score,
         "matched_keywords": matched_keywords,
         "matched_ngrams": matched_ngrams
     }
