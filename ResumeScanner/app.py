@@ -1,29 +1,19 @@
-from flask import Flask, request, jsonify, render_template
-from transformers import pipeline
+from flask import Flask, request, render_template, jsonify
 import pdfplumber
-import nltk
-from nltk.tokenize import word_tokenize
-from nltk.corpus import stopwords
-from nltk.util import ngrams
+from sentence_transformers import SentenceTransformer, util
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-from itertools import chain
-import string
+import os
 import numpy as np
-
-nltk.download('stopwords')
-nltk.download('punkt')
-nltk.download('wordnet')
+import nltk
 from nltk.corpus import wordnet
-
 # Initialize Flask app
 app = Flask(__name__)
-
-# Load the pre-trained model for text similarity
-model = pipeline("zero-shot-classification", model="facebook/bart-large-mnli",device="cpu")
-
-STOP_WORDS = set(stopwords.words('english'))
-
+nltk.download('wordnet')
+nltk.download('stopwords')
+# Load a pretrained model for semantic similarity (MiniLM)
+model = SentenceTransformer('paraphrase-MiniLM-L6-v2',device="cpu")
+model2 = SentenceTransformer('all-MiniLM-L6-v2',device="cpu")
 # Function to extract text from a PDF resume
 def extract_text_from_pdf(pdf_path):
     with pdfplumber.open(pdf_path) as pdf:
@@ -32,79 +22,96 @@ def extract_text_from_pdf(pdf_path):
             text += page.extract_text() + " "
     return text.strip()
 
-# Function to get synonyms
-def get_synonyms(word):
-    synonyms = set()
-    for syn in wordnet.synsets(word):
-        for lemma in syn.lemmas():
-            synonyms.add(lemma.name().replace("_", " "))
-    return synonyms
+# Function to calculate semantic similarity using Sentence-Transformers
+def calculate_semantic_similarity(resume_text, job_description):
+    # Encode both the resume and the job description using the Sentence-Transformer model
+    embeddings = model.encode([resume_text, job_description], convert_to_tensor=True)
+    
+    # Calculate cosine similarity between the resume and job description embeddings
+    cosine_sim = util.pytorch_cos_sim(embeddings[0], embeddings[1])
+    
+    return cosine_sim.item()
 
-# Function to extract keywords using TF-IDF
+# def get_synonyms(word):
+#     synonyms = set()
+#     for syn in wordnet.synsets(word):
+#         for lemma in syn.lemmas():
+#             synonyms.add(lemma.name().replace("_", " "))
+#     return synonyms
+
+def get_similar_words(word, all_words, threshold=0.7):
+    word_embedding = model2.encode([word])[0]
+    all_embeddings = model2.encode(list(all_words))
+    
+    similarities = cosine_similarity([word_embedding], all_embeddings)[0]
+    similar_words = {word for idx, score in enumerate(similarities) if score >= threshold and list(all_words)[idx] != word}
+    
+    return similar_words
+
 def extract_keywords(text, top_n=10):
     vectorizer = TfidfVectorizer(stop_words='english', ngram_range=(1, 2))
     tfidf_matrix = vectorizer.fit_transform([text])
     feature_array = np.array(vectorizer.get_feature_names_out())
     tfidf_sorting = np.argsort(tfidf_matrix.toarray()).flatten()[::-1]
-    return feature_array[tfidf_sorting][:top_n]
+    return set(feature_array[tfidf_sorting][:top_n])
 
-# Function to match resume against job description
-def analyze_resume(resume_text, job_description):
-    resume_tokens = word_tokenize(resume_text.lower())
-    job_tokens = word_tokenize(job_description.lower())
-    
-    resume_tokens = [word for word in resume_tokens if word not in STOP_WORDS and word not in string.punctuation]
-    job_tokens = [word for word in job_tokens if word not in STOP_WORDS and word not in string.punctuation]
-    
-    matched_keywords = list(set(resume_tokens) & set(job_tokens))
-    
-    # Synonym Matching
-    expanded_job_keywords = set(chain(*[get_synonyms(word) for word in job_tokens]))
-    matched_keywords += [word for word in resume_tokens if word in expanded_job_keywords]
-    
-    # N-gram Matching
-    resume_bigrams = list(ngrams(resume_tokens, 2))
-    job_bigrams = list(ngrams(job_tokens, 2))
-    matched_ngrams = [" ".join(pair) for pair in set(resume_bigrams) & set(job_bigrams)]
-    
-    # TF-IDF Similarity
-    vectorizer = TfidfVectorizer(stop_words='english')
-    tfidf_matrix = vectorizer.fit_transform([resume_text, job_description])
-    cosine_sim = cosine_similarity(tfidf_matrix[0], tfidf_matrix[1])[0][0]
-    
-    # Scoring
-    keyword_match_score = len(matched_keywords) / len(set(job_tokens)) if job_tokens else 0
-    ngram_match_score = len(matched_ngrams) / len(set(job_bigrams)) if job_bigrams else 0
-    final_score = (cosine_sim + keyword_match_score + ngram_match_score) / 3
-    
-    return {
-        "cosine_similarity": cosine_sim,
-        "keyword_match_score": keyword_match_score,
-        "ngram_match_score": ngram_match_score,
-        "final_score": final_score,
-        "matched_keywords": matched_keywords,
-        "matched_ngrams": matched_ngrams
-    }
+def calculate_keyword_match(resume_text, job_description):
+    resume_keywords = extract_keywords(resume_text)
+    job_keywords = extract_keywords(job_description)
 
+    # Expand job description keywords using embeddings
+    expanded_job_keywords = set(job_keywords)
+    for word in job_keywords:
+        expanded_job_keywords.update(get_similar_words(word, job_keywords))
+
+    # Calculate the intersection of expanded keywords
+    matched_keywords = resume_keywords & expanded_job_keywords
+    keyword_match_score = len(matched_keywords) / len(expanded_job_keywords) if expanded_job_keywords else 0
+    
+    return matched_keywords, keyword_match_score
+
+# Route to display the form
 @app.route('/')
 def index():
     return render_template('index.html')
 
+# Route to handle form submission
 @app.route('/submit', methods=['POST'])
 def submit():
+    # Check if resume file is provided
     if 'resume' not in request.files or 'job_desc' not in request.form:
         return jsonify({"error": "Missing resume or job description!"})
-
+    
     resume_file = request.files['resume']
     job_description = request.form['job_desc']
-
+    
     if resume_file.filename.endswith('.pdf'):
-        resume_text = extract_text_from_pdf(resume_file)
-    else:
-        return jsonify({"error": "Unsupported resume format!"})
+        # Save the uploaded resume temporarily
+        resume_path = os.path.join('uploads', resume_file.filename)
+        resume_file.save(resume_path)
+        
+        # Extract text from the resume PDF
+        resume_text = extract_text_from_pdf(resume_path)
+        
+        # Calculate semantic similarity between resume and job description
+        similarity_score = calculate_semantic_similarity(resume_text, job_description)
 
-    analysis_result = analyze_resume(resume_text, job_description)
-    return jsonify(analysis_result)
+        matched_keywords, keyword_match_score = calculate_keyword_match(resume_text, job_description)
+        
+        # Return the similarity score as a response
+        return jsonify({
+            "cosine_similarity": similarity_score,
+            "message": f"Semantic Similarity: {similarity_score:.4f}",
+            "keyword_match_score": keyword_match_score,
+            "matched_keywords": list(matched_keywords)
+    
+        })
+    else:
+        return jsonify({"error": "Unsupported file format. Please upload a PDF."})
 
 if __name__ == '__main__':
+    # Make sure the 'uploads' folder exists
+    if not os.path.exists('uploads'):
+        os.makedirs('uploads')
+
     app.run(debug=True)
