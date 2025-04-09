@@ -6,16 +6,10 @@ from nltk.corpus import stopwords
 import string
 from sklearn.feature_extraction.text import CountVectorizer
 from keywords import keywords
-from nltk.stem import WordNetLemmatizer
-from nltk.corpus import wordnet
-import nltk
 from sentence_transformers import SentenceTransformer, util
+import math
+import re
 
-# Place this early in the script (once)
-nltk.download('punkt')
-nltk.download('stopwords')
-nltk.download('wordnet')
-nltk.download('omw-1.4')
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -32,21 +26,27 @@ def extract_text_from_pdf(pdf_path):
             text += page.extract_text() + " "
     return text.strip()
 
-# Clean text for matching
-lemmatizer = WordNetLemmatizer()
-
 def clean_text(text):
     text = text.lower()
     tokens = word_tokenize(text)
-    tokens = [lemmatizer.lemmatize(word) for word in tokens if word.isalpha() and word not in stop_words and word not in string.punctuation]
     return " ".join(tokens)
 
-# Match unigrams and n-grams in text
+
+# def custom_tokenizer(text):
+#     # This regex preserves tech terms like c++, react.js, ux/ui, node.js etc.
+#     return re.findall(r'\b[a-zA-Z0-9]+(?:[\+#./][a-zA-Z0-9]+)*\b', text.lower())
+
+def custom_tokenizer(text):
+    text = text.lower()
+    tokens = re.findall(r'[a-zA-Z0-9+#+./]+', text)
+
+    return tokens
 def match_keywords(text, keyword_list):
-    cleaned_text = clean_text(text)
-    vectorizer = CountVectorizer(ngram_range=(1, 3), stop_words='english')
+    cleaned_text = text.lower()  # skip over-aggressive cleaning
+    vectorizer = CountVectorizer(ngram_range=(1, 3), tokenizer=custom_tokenizer, lowercase=True)
     vectorizer.fit(keyword_list)
     text_vector = vectorizer.transform([cleaned_text])
+
     found_keywords = set()
     for keyword in keyword_list:
         if keyword.lower() in vectorizer.get_feature_names_out():
@@ -54,6 +54,20 @@ def match_keywords(text, keyword_list):
             if text_vector[0, idx] > 0:
                 found_keywords.add(keyword)
     return found_keywords
+
+# Match unigrams and n-grams in text
+# def match_keywords(text, keyword_list):
+#     cleaned_text = clean_text(text)
+#     vectorizer = CountVectorizer(ngram_range=(1, 3), stop_words='english')
+#     vectorizer.fit(keyword_list)
+#     text_vector = vectorizer.transform([cleaned_text])
+#     found_keywords = set()
+#     for keyword in keyword_list:
+#         if keyword.lower() in vectorizer.get_feature_names_out():
+#             idx = list(vectorizer.get_feature_names_out()).index(keyword.lower())
+#             if text_vector[0, idx] > 0:
+#                 found_keywords.add(keyword)
+#     return found_keywords
 
 def semantic_match(keywords_resume, keywords_job, threshold=0.50):
     # Generate embeddings for each keyword
@@ -70,6 +84,17 @@ def semantic_match(keywords_resume, keywords_job, threshold=0.50):
                 matched_keywords.add((keyword_r, keyword_j))
     return matched_keywords
 
+def adjust_score_bell_curve(score):
+    """
+    Applies a sigmoid-like transformation centered around 50.
+    Values below 50 decrease more steeply, values above 50 increase more sharply.
+    Output is still between 0–100.
+    """
+    normalized = (score - 50) / 10  # Center at 50, scale curve sharpness
+    sigmoid = 1 / (1 + math.exp(-normalized))
+    adjusted_score = sigmoid * 100
+    return round(adjusted_score, 2)
+
 # Calculate score based on keyword match
 def calculate_score(matching_keywords, job_matches):
     if not job_matches:
@@ -79,6 +104,7 @@ def calculate_score(matching_keywords, job_matches):
 @app.route('/')
 def index():
     return render_template('index.html')
+
 
 @app.route('/submit', methods=['POST'])
 def submit():
@@ -98,6 +124,7 @@ def submit():
         # Extract keywords using ngrams and clean up
         resume_matches = match_keywords(resume_text, keywords)
         job_matches = match_keywords(job_text, keywords)
+        print(resume_matches)
 
         # Perform semantic match
         semantic_matches = semantic_match(list(resume_matches), list(job_matches))
@@ -105,14 +132,18 @@ def submit():
         # Combine exact matches and semantic matches
         matching_keywords = list(set(resume_matches & job_matches) | {match[1] for match in semantic_matches})
 
-        score = calculate_score(matching_keywords, job_matches)
+        raw_score = calculate_score(matching_keywords, job_matches)
+        score=adjust_score_bell_curve(raw_score)
+
+        absent_keywords = list(set(job_matches) - set(matching_keywords))
 
         return jsonify({
             "matching_keywords": matching_keywords,
             "resume_keywords_found": list(resume_matches),
             "job_keywords_found": list(job_matches),
             "semantic_matches": list(semantic_matches),
-            "score": score
+            "score": score,
+            "absent_keywords": absent_keywords,
         })
     else:
         return jsonify({"error": "Unsupported file format. Please upload a PDF."})

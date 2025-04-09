@@ -1,8 +1,8 @@
 technical_keywords = [
-    "Python", "Java", "C++", "C/C++", "C++,C", "C#", "JavaScript", "TypeScript", "Go", "Ruby", "Rust",
-    "Swift", "Kotlin", "PHP", "HTML", "CSS", "SQL", "NoSQL", "MySQL", "PostgreSQL", "SQLite",
+    "Python", "Java", "C++", "C/C++", "C#", "JavaScript", "TypeScript", "Go","GoLang", "Ruby", "Rust",
+    "Swift", "Kotlin", "PHP", "HTML", "CSS","HTML/CSS", "SQL", "NoSQL", "MySQL", "PostgreSQL", "SQLite",
     "MongoDB", "Redis", "Oracle", "GraphQL", "REST APIs", "SOAP", "AJAX", "Frontend", "Backend", "Front end", "Back end", "JSON", "XML",
-    "React", "Vue", "Angular", "Svelte", "jQuery", "Bootstrap", "Tailwind", "SASS", "LESS",
+    "React", "React.js", "Vue", "Angular", "Svelte", "jQuery", "Bootstrap", "Tailwind", "SASS", "LESS",
     "Node.js", "Express", "Next.js", "Nuxt.js", "Django", "Flask", "FastAPI", "Spring", "Hibernate",
     "ASP.NET", ".NET", ".NET Core", "Laravel", "Symfony", "Rails", "Strapi", "WordPress", "Shopify", "Drupal", "Magento",
     "Firebase", "Supabase", "AWS", "Azure", "Google Cloud", "DigitalOcean", "Heroku", "Vercel", "Netlify",
