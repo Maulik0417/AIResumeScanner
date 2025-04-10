@@ -3,6 +3,7 @@ import pdfplumber
 import os
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
+import nltk
 import string
 from sklearn.feature_extraction.text import CountVectorizer
 from keywords import keywords
@@ -11,9 +12,9 @@ import math
 import re
 from io import BytesIO
 
-
 # Initialize Flask app
 app = Flask(__name__)
+
 model = SentenceTransformer('all-MiniLM-L6-v2')
 
 stop_words = set(stopwords.words('english'))
@@ -154,6 +155,4 @@ def submit():
         return jsonify({"error": "Unsupported file format. Please upload a PDF."})
 
 if __name__ == '__main__':
-    if not os.path.exists('uploads'):
-        os.makedirs('uploads')
     app.run(debug=True)
