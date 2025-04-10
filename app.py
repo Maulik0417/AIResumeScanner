@@ -9,6 +9,7 @@ from keywords import keywords
 from sentence_transformers import SentenceTransformer, util
 import math
 import re
+from io import BytesIO
 
 
 # Initialize Flask app
@@ -31,10 +32,6 @@ def clean_text(text):
     tokens = word_tokenize(text)
     return " ".join(tokens)
 
-
-# def custom_tokenizer(text):
-#     # This regex preserves tech terms like c++, react.js, ux/ui, node.js etc.
-#     return re.findall(r'\b[a-zA-Z0-9]+(?:[\+#./][a-zA-Z0-9]+)*\b', text.lower())
 
 def custom_tokenizer(text):
     text = text.lower()
@@ -114,17 +111,25 @@ def submit():
     resume_file = request.files['resume']
     job_description = request.form['job_desc']
 
-    if resume_file.filename.endswith('.pdf'):
-        resume_path = os.path.join('uploads', resume_file.filename)
-        resume_file.save(resume_path)
+    # if resume_file.filename.endswith('.pdf'):
+    #     resume_path = os.path.join('uploads', resume_file.filename)
+    #     resume_file.save(resume_path)
 
-        resume_text = extract_text_from_pdf(resume_path)
+    if resume_file.filename.endswith('.pdf'):
+        # Read the PDF directly from the file in memory
+        pdf_bytes = resume_file.read()
+        with pdfplumber.open(BytesIO(pdf_bytes)) as pdf:
+            resume_text = ''
+            for page in pdf.pages:
+                resume_text += page.extract_text() + " "
+
+        # resume_text = extract_text_from_pdf(resume_path)
         job_text = job_description
 
         # Extract keywords using ngrams and clean up
         resume_matches = match_keywords(resume_text, keywords)
         job_matches = match_keywords(job_text, keywords)
-        print(resume_matches)
+        #print(resume_matches)
 
         # Perform semantic match
         semantic_matches = semantic_match(list(resume_matches), list(job_matches))
