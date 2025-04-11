@@ -15,3 +15,18 @@
 
 node_modules
 #!include:.gitignore
+
+.venv/
+.env
+__pycache__/
+*.pyc
+.idea/
+.firebaserc
+firebase.json
+.gitignore
+.firebase/
+.github/
+temp/
+TODO.md
+README.md
+LICENSE
