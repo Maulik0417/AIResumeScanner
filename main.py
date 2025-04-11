@@ -2,8 +2,9 @@ from flask import Flask, request, render_template, jsonify
 import pdfplumber
 import os
 from nltk.tokenize import word_tokenize
-from nltk.corpus import stopwords
 import nltk
+nltk.data.path.append('./nltk_data')
+from nltk.corpus import stopwords
 import string
 from sklearn.feature_extraction.text import CountVectorizer
 from keywords import keywords
