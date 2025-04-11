@@ -1,4 +1,5 @@
 from flask import Flask, request, render_template, jsonify
+from flask_cors import CORS
 import pdfplumber
 import os
 from nltk.tokenize import word_tokenize
@@ -16,7 +17,7 @@ import os
 
 # Initialize Flask app
 app = Flask(__name__)
-
+CORS(app)
 model = SentenceTransformer('./model')
 
 stop_words = set(stopwords.words('english'))
