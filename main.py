@@ -16,7 +16,7 @@ import os
 # Initialize Flask app
 app = Flask(__name__)
 
-model = SentenceTransformer('all-MiniLM-L6-v2')
+model = SentenceTransformer('./model')
 
 stop_words = set(stopwords.words('english'))
 
