@@ -8,3 +8,4 @@ torch>=1.6.0  # Required for sentence-transformers
 transformers>=4.0.0  # Required for sentence-transformers
 Pillow  # Required for pdfplumber
 numpy==1.23.5
+werkzeug==2.1.0

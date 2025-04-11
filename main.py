@@ -11,6 +11,7 @@ from sentence_transformers import SentenceTransformer, util
 import math
 import re
 from io import BytesIO
+import os
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -155,4 +156,5 @@ def submit():
         return jsonify({"error": "Unsupported file format. Please upload a PDF."})
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080)
+    port = int(os.environ.get('PORT', 8080))
+    app.run(host='0.0.0.0', port=port, debug=False)
