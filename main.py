@@ -107,7 +107,7 @@ def calculate_score(matching_keywords, job_matches):
 #     return render_template('index.html')
 
 @app.route('/submit', methods=['POST', 'OPTIONS'])
-def submit(request):
+def submit():
     if request.method == 'OPTIONS':
         # Handle CORS preflight request
         return ('', 204)  # Return a 204 (No Content) response for OPTIONS
