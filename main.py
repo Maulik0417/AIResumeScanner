@@ -107,10 +107,15 @@ def calculate_score(matching_keywords, job_matches):
 #     return render_template('index.html')
 
 @app.route('/submit', methods=['POST', 'OPTIONS'])
-def submit():
+def submit(request):
     if request.method == 'OPTIONS':
-        # Handle CORS preflight request
-        return ('', 204)  # Return a 204 (No Content) response for OPTIONS
+        headers = {
+            'Access-Control-Allow-Origin': '*',  # Or specify your domain
+            'Access-Control-Allow-Methods': 'POST, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type',
+            'Access-Control-Max-Age': '3600'
+        }
+        return ('', 204, headers)  # Return a 204 (No Content) response for OPTIONS
 
     if 'resume' not in request.files or 'job_desc' not in request.form:
         return jsonify({"error": "Missing resume or job description!"})
@@ -149,16 +154,30 @@ def submit():
 
         absent_keywords = list(set(job_matches) - set(matching_keywords))
 
-        return jsonify({
-            "matching_keywords": matching_keywords,
-            "resume_keywords_found": list(resume_matches),
-            "job_keywords_found": list(job_matches),
-            "semantic_matches": list(semantic_matches),
-            "score": score,
-            "absent_keywords": absent_keywords,
+    #     return jsonify({
+    #         "matching_keywords": matching_keywords,
+    #         "resume_keywords_found": list(resume_matches),
+    #         "job_keywords_found": list(job_matches),
+    #         "semantic_matches": list(semantic_matches),
+    #         "score": score,
+    #         "absent_keywords": absent_keywords,
+    #     })
+    # else:
+    #     return jsonify({"error": "Unsupported file format. Please upload a PDF."})
+        response = jsonify({
+        "matching_keywords": matching_keywords,
+        "resume_keywords_found": list(resume_matches),
+        "job_keywords_found": list(job_matches),
+        "semantic_matches": list(semantic_matches),
+        "score": score,
+        "absent_keywords": absent_keywords,
         })
+        response.headers.add('Access-Control-Allow-Origin', '*')  # Add this line
+        return response
     else:
-        return jsonify({"error": "Unsupported file format. Please upload a PDF."})
+        response = jsonify({"error": "Unsupported file format. Please upload a PDF."})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
