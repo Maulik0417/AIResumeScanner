@@ -102,13 +102,16 @@ def calculate_score(matching_keywords, job_matches):
         return 0
     return round(len(matching_keywords) / len(job_matches) * 100, 2)
 
-@app.route('/')
-def index():
-    return render_template('index.html')
+# @app.route('/')
+# def index():
+#     return render_template('index.html')
 
+@app.route('/submit', methods=['POST', 'OPTIONS'])
+def submit(request):
+    if request.method == 'OPTIONS':
+        # Handle CORS preflight request
+        return ('', 204)  # Return a 204 (No Content) response for OPTIONS
 
-@app.route('/submit', methods=['POST'])
-def submit():
     if 'resume' not in request.files or 'job_desc' not in request.form:
         return jsonify({"error": "Missing resume or job description!"})
 

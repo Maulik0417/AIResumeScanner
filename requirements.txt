@@ -10,3 +10,5 @@ Pillow  # Required for pdfplumber
 numpy==1.23.5
 werkzeug==2.1.0
 huggingface-hub>=0.20.0
+flask
+flask-cors
