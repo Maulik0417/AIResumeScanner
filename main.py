@@ -18,12 +18,7 @@ import os
 # Initialize Flask app
 app = Flask(__name__)
 CORS(app)
-@app.after_request
-def apply_cors(response):
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] = "Content-Type"
-    return response
+
 
 model = SentenceTransformer('./model')
 
@@ -109,17 +104,24 @@ def calculate_score(matching_keywords, job_matches):
         return 0
     return round(len(matching_keywords) / len(job_matches) * 100, 2)
 
+@app.after_request
+def apply_cors(response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+    return response
 
 @app.route('/submit', methods=['POST', 'OPTIONS'])
 def submit(request):
     if request.method == 'OPTIONS':
+        response = app.make_response(('', 204))
         headers = {
+            
             'Access-Control-Allow-Origin': '*',  # Or specify your domain
             'Access-Control-Allow-Methods': 'POST, OPTIONS',
             'Access-Control-Allow-Headers': 'Content-Type',
-            'Access-Control-Max-Age': '3600'
         }
-        return ('', 204, headers)  # Return a 204 (No Content) response for OPTIONS
+        return response  # Return a 204 (No Content) response for OPTIONS
 
 
 
@@ -175,11 +177,11 @@ def submit(request):
         "score": score,
         "absent_keywords": absent_keywords,
         })
-        response.headers.add('Access-Control-Allow-Origin', '*')  # Add this line
+        response.headers["Access-Control-Allow-Origin"] = "*"  # Ensure CORS header is set on response
         return response
     else:
         response = jsonify({"error": "Unsupported file format. Please upload a PDF."})
-        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers["Access-Control-Allow-Origin"] = "*"
         return response
 
 if __name__ == '__main__':
