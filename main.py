@@ -110,24 +110,17 @@ def calculate_score(matching_keywords, job_matches):
     return round(len(matching_keywords) / len(job_matches) * 100, 2)
 
 
-# @app.route('/submit', methods=['POST', 'OPTIONS'])
-# def submit(request):
-#     if request.method == 'OPTIONS':
-#         headers = {
-#             'Access-Control-Allow-Origin': '*',  # Or specify your domain
-#             'Access-Control-Allow-Methods': 'POST, OPTIONS',
-#             'Access-Control-Allow-Headers': 'Content-Type',
-#             'Access-Control-Max-Age': '3600'
-#         }
-#         return ('', 204, headers)  # Return a 204 (No Content) response for OPTIONS
-
 @app.route('/submit', methods=['POST', 'OPTIONS'])
-def submit():
+def submit(request):
     if request.method == 'OPTIONS':
-        # Preflight CORS headers
-        response = app.make_response('')
-        response.status_code = 204
-        return response
+        headers = {
+            'Access-Control-Allow-Origin': '*',  # Or specify your domain
+            'Access-Control-Allow-Methods': 'POST, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type',
+            'Access-Control-Max-Age': '3600'
+        }
+        return ('', 204, headers)  # Return a 204 (No Content) response for OPTIONS
+
 
 
     if 'resume' not in request.files or 'job_desc' not in request.form:
