@@ -58,19 +58,6 @@ def match_keywords(text, keyword_list):
                 found_keywords.add(keyword)
     return found_keywords
 
-# Match unigrams and n-grams in text
-# def match_keywords(text, keyword_list):
-#     cleaned_text = clean_text(text)
-#     vectorizer = CountVectorizer(ngram_range=(1, 3), stop_words='english')
-#     vectorizer.fit(keyword_list)
-#     text_vector = vectorizer.transform([cleaned_text])
-#     found_keywords = set()
-#     for keyword in keyword_list:
-#         if keyword.lower() in vectorizer.get_feature_names_out():
-#             idx = list(vectorizer.get_feature_names_out()).index(keyword.lower())
-#             if text_vector[0, idx] > 0:
-#                 found_keywords.add(keyword)
-#     return found_keywords
 
 def semantic_match(keywords_resume, keywords_job, threshold=0.50):
     # Generate embeddings for each keyword
@@ -104,12 +91,6 @@ def calculate_score(matching_keywords, job_matches):
         return 0
     return round(len(matching_keywords) / len(job_matches) * 100, 2)
 
-# @app.after_request
-# def apply_cors(response):
-#     response.headers["Access-Control-Allow-Origin"] = "*"  # Allow all origins
-#     response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"  # Allow POST and OPTIONS methods
-#     response.headers["Access-Control-Allow-Headers"] = "Content-Type"  # Allow Content-Type header
-#     return response
 
 @app.route('/submit', methods=['POST', 'OPTIONS'])
 def submit(): #(request)
@@ -156,16 +137,6 @@ def submit(): #(request)
 
         absent_keywords = list(set(job_matches) - set(matching_keywords))
 
-    #     return jsonify({
-    #         "matching_keywords": matching_keywords,
-    #         "resume_keywords_found": list(resume_matches),
-    #         "job_keywords_found": list(job_matches),
-    #         "semantic_matches": list(semantic_matches),
-    #         "score": score,
-    #         "absent_keywords": absent_keywords,
-    #     })
-    # else:
-    #     return jsonify({"error": "Unsupported file format. Please upload a PDF."})
         response = jsonify({
         "matching_keywords": matching_keywords,
         "resume_keywords_found": list(resume_matches),
