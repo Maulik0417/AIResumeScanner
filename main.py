@@ -18,6 +18,13 @@ import os
 # Initialize Flask app
 app = Flask(__name__)
 CORS(app)
+@app.after_request
+def apply_cors(response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+    return response
+
 model = SentenceTransformer('./model')
 
 stop_words = set(stopwords.words('english'))
@@ -102,20 +109,26 @@ def calculate_score(matching_keywords, job_matches):
         return 0
     return round(len(matching_keywords) / len(job_matches) * 100, 2)
 
-# @app.route('/')
-# def index():
-#     return render_template('index.html')
+
+# @app.route('/submit', methods=['POST', 'OPTIONS'])
+# def submit(request):
+#     if request.method == 'OPTIONS':
+#         headers = {
+#             'Access-Control-Allow-Origin': '*',  # Or specify your domain
+#             'Access-Control-Allow-Methods': 'POST, OPTIONS',
+#             'Access-Control-Allow-Headers': 'Content-Type',
+#             'Access-Control-Max-Age': '3600'
+#         }
+#         return ('', 204, headers)  # Return a 204 (No Content) response for OPTIONS
 
 @app.route('/submit', methods=['POST', 'OPTIONS'])
-def submit(request):
+def submit():
     if request.method == 'OPTIONS':
-        headers = {
-            'Access-Control-Allow-Origin': '*',  # Or specify your domain
-            'Access-Control-Allow-Methods': 'POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type',
-            'Access-Control-Max-Age': '3600'
-        }
-        return ('', 204, headers)  # Return a 204 (No Content) response for OPTIONS
+        # Preflight CORS headers
+        response = app.make_response('')
+        response.status_code = 204
+        return response
+
 
     if 'resume' not in request.files or 'job_desc' not in request.form:
         return jsonify({"error": "Missing resume or job description!"})
@@ -123,9 +136,6 @@ def submit(request):
     resume_file = request.files['resume']
     job_description = request.form['job_desc']
 
-    # if resume_file.filename.endswith('.pdf'):
-    #     resume_path = os.path.join('uploads', resume_file.filename)
-    #     resume_file.save(resume_path)
 
     if resume_file.filename.endswith('.pdf'):
         # Read the PDF directly from the file in memory
@@ -180,5 +190,4 @@ def submit(request):
         return response
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 8080))
-    app.run(host='0.0.0.0', port=port, debug=False)
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))

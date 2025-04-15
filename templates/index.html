@@ -205,14 +205,12 @@
             resultsContainer.style.display = 'none';  // Hide results until we get them
 
             const formData = new FormData(form);
-            // const response = await fetch('https://us-central1-airesumescannerbackend.cloudfunctions.net/submit', {
             const response = await fetch('https://submit-145706222925.us-central1.run.app/submit', {
                 method: 'POST',
                 headers: {
                 'Content-Type': 'application/json',
             },
-                // body: formData,
-                body: JSON.stringify(formData),
+                body: formData,
             });
 
             // const data = await response.json();
