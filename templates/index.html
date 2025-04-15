@@ -208,10 +208,16 @@
             // const response = await fetch('https://us-central1-airesumescannerbackend.cloudfunctions.net/submit', {
             const response = await fetch('https://submit-145706222925.us-central1.run.app/submit', {
                 method: 'POST',
-                body: formData,
+                headers: {
+                'Content-Type': 'application/json',
+            },
+                // body: formData,
+                body: JSON.stringify(formData),
             });
 
-            const data = await response.json();
+            // const data = await response.json();
+            const text = await response.text(); // get raw response
+            console.log('Raw response:', text);
             
             // Hide loading spinner
             loadingIndicator.style.display = 'none';
