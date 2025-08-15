@@ -127,7 +127,11 @@ def submit(): #(request)
         #print(resume_matches)
 
         # Perform semantic match
-        semantic_matches = semantic_match(list(resume_matches), list(job_matches))
+        if not resume_matches or not job_matches:
+            semantic_matches = set()
+        else:
+            semantic_matches = semantic_match(list(resume_matches), list(job_matches))
+
 
         # Combine exact matches and semantic matches
         matching_keywords = list(set(resume_matches & job_matches) | {match[1] for match in semantic_matches})
