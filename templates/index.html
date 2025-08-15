@@ -229,8 +229,8 @@
       }
 
       resultsContainer.style.display = 'block';
-      document.getElementById('matching_keywords').innerHTML = `<strong>✅ Matching Skills:</strong><br>${data.matching_keywords.join(', ')}`;
-      document.getElementById('absent_keywords').innerHTML = `<strong style="color: red;">❌ Absent Skills:</strong><br>${data.absent_keywords.length > 0 ? data.absent_keywords.join(', ') : 'None 🎉'}`;
+      document.getElementById('matching_keywords').innerHTML = `<strong>✅ Matching Technical Skills:</strong><br>${data.matching_keywords.join(', ')}`;
+      document.getElementById('absent_keywords').innerHTML = `<strong style="color: red;">❌ Absent Technical Skills:</strong><br>${data.absent_keywords.length > 0 ? data.absent_keywords.join(', ') : 'None 🎉'}`;
 
       const scoreElement = document.getElementById('score');
       const score = data.score;
