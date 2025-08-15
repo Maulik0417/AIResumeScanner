@@ -1,167 +1,207 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>AI Resume Scanner</title>
-  
+
   <!-- Bootstrap CSS -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
 
   <style>
     body {
-      background-color: #f4f4f4;
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #e9f5ff, #ffffff);
+      min-height: 100vh;
+      padding: 2rem 0;
     }
+
+    h1 {
+      font-weight: 700;
+      color: #0d6efd;
+    }
+
     .container-custom {
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-      margin-top: 20px;
-      position: relative;
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(10px);
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
     }
-    .how-it-works-btn {
-      background-color: #28a745;
-      color: white;
-      padding: 10px 15px;
-      border-radius: 5px;
+
+    .form-label {
+      font-weight: 600;
+    }
+
+    .btn-primary {
+      background: #0d6efd;
       border: none;
+      transition: all 0.2s ease-in-out;
+    }
+
+    .btn-primary:hover {
+      background-color: #0b5ed7;
+      transform: scale(1.02);
+    }
+
+    .how-it-works-btn {
+      background: #20c997;
+      border: none;
+      font-weight: 600;
       font-size: 14px;
-    }
-    .how-it-works-btn:hover {
-      background-color: #218838;
-    }
-    .results {
-      margin-top: 20px;
-      padding: 15px;
-      background-color: #f1f1f1;
+      padding: 10px 20px;
       border-radius: 8px;
+      transition: background 0.3s ease;
     }
+
+    .how-it-works-btn:hover {
+      background: #17a589;
+    }
+
+    .how-it-works-container {
+      text-align: end;
+    }
+
+    .results {
+      margin-top: 30px;
+      animation: fadeIn 0.7s ease-in-out;
+    }
+
     .result-item {
-      padding: 10px;
-      margin-bottom: 10px;
-      background-color: #fff;
-      border-radius: 5px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      background-color: #ffffff;
+      border-left: 5px solid #0d6efd;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 8px;
+      font-size: 15px;
     }
+
     .score {
-      font-size: 20px;
-      font-weight: bold;
-      color: #28a745;
+      font-size: 22px;
+      font-weight: 700;
     }
+
     .loading {
-      display: none;
       text-align: center;
+      margin-top: 20px;
     }
+
     .spinner {
-      border: 4px solid rgba(255, 255, 255, 0.3);
-      border-top: 4px solid #007BFF;
+      border: 5px solid rgba(0, 0, 0, 0.1);
+      border-top: 5px solid #0d6efd;
       border-radius: 50%;
-      width: 50px;
-      height: 50px;
+      width: 60px;
+      height: 60px;
       animation: spin 1s linear infinite;
       margin: 0 auto;
     }
+
     @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+      to {
+        transform: rotate(360deg);
+      }
     }
-    /* Modal */
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(15px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Modal styling */
     .modal-content {
-      border-radius: 8px;
+      border-radius: 12px;
+      padding: 30px;
     }
+
+    .modal-content h2 {
+      font-weight: 700;
+      margin-bottom: 20px;
+    }
+
+    .modal-content ul li {
+      margin-bottom: 10px;
+    }
+
     .close {
-      color: #aaa;
-      font-size: 28px;
-      font-weight: bold;
       position: absolute;
       top: 10px;
-      right: 25px;
-    }
-    .close:hover {
-      color: black;
-      cursor: pointer;
-    }
-    /* Responsive How It Works Button */
-    .how-it-works-container {
-      position: absolute;
-      top: 20px;
       right: 20px;
+      font-size: 24px;
+      cursor: pointer;
+      color: #888;
     }
-    @media (max-width: 850px) {
-      .how-it-works-container {
-        position: static;
-        margin-top: 20px;
-        text-align: right;
-      }
+
+    .close:hover {
+      color: #000;
     }
   </style>
 </head>
 
 <body>
+  <div class="container">
+    <h1 class="text-center mb-4">AI-Powered Tech Resume Scanner</h1>
 
-  <div class="container my-4">
-    <h1 class="text-center">AI-Powered Tech Resume Scanner</h1>
-
-    <div class="container-custom position-relative">
-
-      <form action="/submit" method="POST" enctype="multipart/form-data" class="d-flex flex-column gap-3">
+    <div class="container-custom mx-auto" style="max-width: 800px;">
+      <form action="/submit" method="POST" enctype="multipart/form-data" class="d-flex flex-column gap-4">
         <div class="mb-3">
           <label for="resume" class="form-label">Upload Resume (PDF only):</label>
-          <input type="file" class="form-control" name="resume" required>
+          <input type="file" class="form-control" name="resume" required />
         </div>
 
         <div class="mb-3">
-          <label for="job_desc" class="form-label">Job Description:</label>
-          <textarea class="form-control" name="job_desc" rows="10" required></textarea>
+          <label for="job_desc" class="form-label">Paste Job Description:</label>
+          <textarea class="form-control" name="job_desc" rows="8" required></textarea>
         </div>
 
-        <button type="submit" class="btn btn-primary">Submit</button>
+        <button type="submit" class="btn btn-primary w-100">Scan Resume</button>
       </form>
 
+      <div class="how-it-works-container mt-4">
+        <button class="how-it-works-btn" id="howItWorksBtn">How It Works</button>
+      </div>
+
       <!-- Loading spinner -->
-      <div id="loading" class="loading mt-4">
+      <div id="loading" class="loading" style="display: none;">
         <div class="spinner"></div>
-        <p>Processing... This May Take A While</p>
+        <p class="mt-2 text-muted">Processing... Please wait.</p>
       </div>
 
       <!-- Results -->
-      <div id="results" class="results mt-4" style="display: none;">
-        <h2>Results</h2>
+      <div id="results" class="results" style="display: none;">
+        <h4 class="mb-3">Results</h4>
         <div id="matching_keywords" class="result-item"></div>
         <div id="absent_keywords" class="result-item"></div>
-        <div id="score" class="score"></div>
+        <div id="score" class="score mt-3 text-center"></div>
       </div>
-
     </div>
-
-    <!-- How it works button -->
-    <div class="how-it-works-container mt-3">
-      <button class="how-it-works-btn" id="howItWorksBtn">How It Works</button>
-    </div>
-
   </div>
 
   <!-- Modal -->
   <div class="modal fade" id="myModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content p-4">
+      <div class="modal-content">
         <span class="close" id="closeModal">&times;</span>
         <h2>How This Resume Scanner Works</h2>
-        <p><strong>Disclaimer:</strong> This tool is primarily designed for tech-related fields and may not work effectively for other domains.</p>
+        <p><strong>Disclaimer:</strong> This tool is optimized for tech roles.</p>
         <ul>
-          <li><strong>Step 1:</strong> Extracts text from your resume and the job posting.</li>
-          <li><strong>Step 2:</strong> Identifies keywords from a predefined list of tech skills and soft skills.</li>
-          <li><strong>Step 3:</strong> Matches resume keywords to job description keywords.</li>
-          <li><strong>Step 4:</strong> Uses AI to calculate semantic similarity using cosine similarity.</li>
-          <li><strong>Step 5:</strong> Outputs a compatibility score percentage.</li>
+          <li><strong>Step 1:</strong> Extracts content from your resume and the job description.</li>
+          <li><strong>Step 2:</strong> Identifies relevant hard and soft skills.</li>
+          <li><strong>Step 3:</strong> Uses AI to semantically compare the texts.</li>
+          <li><strong>Step 4:</strong> Calculates a compatibility score.</li>
         </ul>
-        <p>Higher scores mean a better match!</p>
+        <p>A higher score means your resume aligns well with the job post!</p>
       </div>
     </div>
   </div>
 
-  <!-- Bootstrap JS Bundle -->
+  <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
   <script>
@@ -189,13 +229,14 @@
       }
 
       resultsContainer.style.display = 'block';
-      document.getElementById('matching_keywords').innerHTML = `<strong>Matching Skills:</strong><br>${data.matching_keywords.join(', ')}`;
-      document.getElementById('absent_keywords').innerHTML = `<strong style="color: red;">Absent Skills:</strong><br>${data.absent_keywords.length > 0 ? data.absent_keywords.join(', ') : 'None 🎉'}`;
+      document.getElementById('matching_keywords').innerHTML = `<strong>✅ Matching Skills:</strong><br>${data.matching_keywords.join(', ')}`;
+      document.getElementById('absent_keywords').innerHTML = `<strong style="color: red;">❌ Absent Skills:</strong><br>${data.absent_keywords.length > 0 ? data.absent_keywords.join(', ') : 'None 🎉'}`;
 
       const scoreElement = document.getElementById('score');
       const score = data.score;
       scoreElement.textContent = `Compatibility Score: ${score}%`;
-      scoreElement.style.color = score >= 50 ? 'green' : 'red';
+      scoreElement.classList.toggle('text-success', score >= 50);
+      scoreElement.classList.toggle('text-danger', score < 50);
     });
 
     // Modal logic
@@ -203,14 +244,8 @@
     const btn = document.getElementById("howItWorksBtn");
     const closeModal = document.getElementById("closeModal");
 
-    btn.onclick = () => {
-      modal.show();
-    };
-
-    closeModal.onclick = () => {
-      modal.hide();
-    };
+    btn.onclick = () => modal.show();
+    closeModal.onclick = () => modal.hide();
   </script>
-
 </body>
 </html>
